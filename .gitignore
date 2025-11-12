@@ -1,0 +1,18 @@
+# Lazy.nvim plugin directory
+lazy-lock.json
+
+# Swap files
+*.swp
+*.swo
+*~
+
+# Backup files
+*.bak
+*.backup
+
+# Session files
+*.vim
+Session.vim
+
+# Neovim specific
+.netrwhist
