@@ -52,7 +52,8 @@ require("lazy").setup({
           "python", "javascript", "typescript",
           "html", "css", "json", "yaml",
           "bash", "markdown", "markdown_inline",
-          "git_config", "git_rebase", "gitcommit", "gitignore"
+          "git_config", "git_rebase", "gitcommit", "gitignore",
+          "dockerfile", "terraform", "toml", "regex"
         },
         highlight = {
           enable = true,
@@ -188,6 +189,62 @@ require("lazy").setup({
           },
         }
       })
+    end,
+  },
+  
+  -- Alpha-nvim (startup screen)
+  {
+    "goolord/alpha-nvim",
+    dependencies = { "nvim-tree/nvim-web-devicons" },
+    config = function()
+      local alpha = require('alpha')
+      local dashboard = require('alpha.themes.dashboard')
+      
+      -- Set header
+      dashboard.section.header.val = {
+        "                                                                       ",
+        "                                                                       ",
+        "   ██▀███   ▄▄▄       █▄▄▄▄ █    ██ ▓█████ ▒███████▒ ██░ ██  ▄▄▄     ",
+        "  ▓██ ▒ ██▒▒████▄    ▓█░ ▀█ █    ██▓█   ▀ ▒ ▒ ▒ ▄▀░▓██░ ██▒▒████▄   ",
+        "  ▓██ ░▄█ ▒▒██  ▀█▄  ▒█░ ▄█ ██  ▓██▒███   ░ ▒ ▄▀▒░ ▒██▀▀██░▒██  ▀█▄ ",
+        "  ▒██▀▀█▄  ░██▄▄▄▄██ ░█░  █ ▓██  ▒██▒▓█  ▄   ▄▀▒   ░░▓█ ░██ ░██▄▄▄▄██",
+        "  ░██▓ ▒██▒ ▓█   ▓██▒░█░  █ ▒██  ▒██░▒████▒▒███████▒░▓█▒░██▓ ▓█   ▓██",
+        "  ░ ▒▓ ░▒▓░ ▒▒   ▓▒█░▒█   █ ▒▒   ░██░░ ▒░ ░░▒▒ ▓░▒░▒ ▒ ░░▒░▒ ▒▒   ▓▒█",
+        "    ░▒ ░ ▒░  ▒   ▒▒ ░░    █ ░   ▒ ░ ░ ░  ░░░▒ ▒ ░ ▒ ▒ ░▒░ ░  ▒   ▒▒ ",
+        "    ░░   ░   ░   ▒    ░  █  ░   ░     ░   ░ ░ ░ ▒ ░ ░  ░░ ░  ░   ▒  ",
+        "     ░           ░  ░   ░        ░     ░  ░  ░ ░     ░  ░  ░      ░  ",
+        "                                                                       ",
+        '                       What are we gonna do today?                    ',
+        "                                                                       ",
+      }
+      
+      -- Set menu
+      dashboard.section.buttons.val = {
+        dashboard.button("f", "  Find file", ":Telescope find_files <CR>"),
+        dashboard.button("r", "  Recent files", ":Telescope oldfiles <CR>"),
+        dashboard.button("g", "  Find text", ":Telescope live_grep <CR>"),
+        dashboard.button("u", "  Update plugins", ":Lazy update<CR>"),
+        dashboard.button("p", "  Manage plugins", ":Lazy<CR>"),
+        dashboard.button("c", "  Configuration", ":e $MYVIMRC<CR>"),
+        dashboard.button("q", "  Quit", ":qa<CR>"),
+      }
+      
+      -- Set footer
+      local function footer()
+        local total_plugins = #vim.tbl_keys(require("lazy").plugins())
+        local datetime = os.date(" %Y-%m-%d   %H:%M:%S")
+        return datetime .. "   " .. total_plugins .. " plugins"
+      end
+      
+      dashboard.section.footer.val = footer()
+      
+      -- Send config to alpha
+      alpha.setup(dashboard.opts)
+      
+      -- Disable folding on alpha buffer
+      vim.cmd([[
+        autocmd FileType alpha setlocal nofoldenable
+      ]])
     end,
   },
 })
