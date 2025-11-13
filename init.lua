@@ -57,8 +57,11 @@ require("lazy").setup({
   -- Darcula Theme
   {
     "briones-gabriel/darcula-solid.nvim",
+    lazy = false,     -- Load immediately, not lazy
     priority = 1000,  -- Load theme first
-    dependencies = { "rktjmp/lush.nvim" },
+    dependencies = { 
+      { "rktjmp/lush.nvim", lazy = false }
+    },
     config = function()
       require("darcula").setup({
         opt = {
@@ -71,7 +74,7 @@ require("lazy").setup({
           },
         },
       })
-      vim.cmd('colorscheme darcula-dark')
+      vim.cmd('colorscheme darcula-solid')
       vim.cmd('syntax on')
     end,
   },
