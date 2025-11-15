@@ -74,18 +74,21 @@ require("lazy").setup({
       { "rktjmp/lush.nvim", lazy = false }
     },
     config = function()
-      require("darcula").setup({
-        opt = {
-          integrations = {
-            telescope = true,
-            lualine = true,
-            lsp_semantics_token = true,
-            nvim_cmp = true,
-            dap_nvim = true,
+      local ok, darcula = pcall(require, "darcula")
+      if ok then
+        darcula.setup({
+          opt = {
+            integrations = {
+              telescope = true,
+              lualine = true,
+              lsp_semantics_token = true,
+              nvim_cmp = true,
+              dap_nvim = true,
+            },
           },
-        },
-      })
-      vim.cmd('colorscheme darcula-solid')
+        })
+        vim.cmd('colorscheme darcula-solid')
+      end
       vim.cmd('syntax on')
     end,
   },
@@ -188,6 +191,54 @@ require("lazy").setup({
             style = "lazygit",
           },
         }
+      })
+    end,
+  },
+  
+  -- Opencode.nvim (AI coding assistant)
+  {
+    "sudo-tee/opencode.nvim",
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "nvim-telescope/telescope.nvim",
+      "folke/snacks.nvim",
+      {
+        "MeanderingProgrammer/render-markdown.nvim",
+        opts = {
+          anti_conceal = { enabled = false },
+          file_types = { 'markdown', 'opencode_output' },
+        },
+        ft = { 'markdown', 'Avante', 'copilot-chat', 'opencode_output' },
+      },
+    },
+    config = function()
+      require('opencode').setup({
+        keymap_prefix = '<leader>ai',  -- Custom prefix for all keymaps
+        default_global_keymaps = true,  -- Enable all default keymaps
+        default_mode = 'build',  -- Full development mode with file changes
+        
+        -- UI defaults (explicitly shown for clarity)
+        ui = {
+          position = 'right',  -- Right side (nvim-tree is on left)
+          window_width = 0.40,  -- 40% of screen width
+          input_position = 'bottom',  -- Input at bottom of opencode pane
+          display_model = true,  -- Show model name in winbar
+          display_context_size = true,  -- Show context size in footer
+          display_cost = true,  -- Show cost in footer
+        },
+        
+        -- Context defaults (enable useful context)
+        context = {
+          enabled = true,
+          current_file = { enabled = true },
+          selection = { enabled = true },
+          diagnostics = {
+            info = false,  -- Skip info diagnostics
+            warn = true,   -- Include warnings
+            error = true,  -- Include errors
+          },
+          cursor_data = { enabled = false },  -- Disable to reduce noise
+        },
       })
     end,
   },
