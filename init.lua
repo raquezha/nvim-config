@@ -2,7 +2,7 @@
 -- Lazy.nvim Bootstrap (Auto-installs lazy.nvim if not present)
 -- ============================================================================
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
-if not vim.loop.fs_stat(lazypath) then
+if not vim.uv.fs_stat(lazypath) then
   vim.fn.system({
     "git",
     "clone",
@@ -32,6 +32,26 @@ vim.opt.incsearch = true
 vim.opt.showmatch = true
 vim.opt.scrolloff = 8  -- Smooth scrolling - keep 8 lines visible
 
+local treesitter_languages = {
+  "lua", "vim", "vimdoc",
+  "kotlin", "java",
+  "python", "javascript", "typescript",
+  "html", "css", "json", "yaml",
+  "bash", "markdown", "markdown_inline",
+  "git_config", "git_rebase", "gitcommit", "gitignore",
+  "dockerfile", "terraform", "toml", "regex",
+}
+
+local treesitter_filetypes = {
+  "lua", "vim", "help",
+  "kotlin", "java",
+  "python", "javascript", "typescript", "javascriptreact", "typescriptreact",
+  "html", "css", "json", "yaml",
+  "sh", "bash", "markdown",
+  "gitconfig", "gitrebase", "gitcommit",
+  "dockerfile", "terraform", "toml",
+}
+
 -- ============================================================================
 -- Plugin Setup with Lazy.nvim
 -- ============================================================================
@@ -43,24 +63,32 @@ require("lazy").setup({
   -- Treesitter (syntax highlighting)
   {
     "nvim-treesitter/nvim-treesitter",
+    lazy = false,
     build = ":TSUpdate",
     config = function()
-      require('nvim-treesitter.configs').setup({
-        ensure_installed = { 
-          "lua", "vim", "vimdoc",
-          "kotlin", "java",
-          "python", "javascript", "typescript",
-          "html", "css", "json", "yaml",
-          "bash", "markdown", "markdown_inline",
-          "git_config", "git_rebase", "gitcommit", "gitignore",
-          "dockerfile", "terraform", "toml", "regex"
-        },
-        highlight = {
-          enable = true,
-        },
-        indent = {
-          enable = true,
-        },
+      local treesitter = require("nvim-treesitter")
+      treesitter.setup()
+
+      local installed = treesitter.get_installed()
+      local missing = vim.tbl_filter(function(lang)
+        return not vim.tbl_contains(installed, lang)
+      end, treesitter_languages)
+
+      if #missing > 0 then
+        local install = treesitter.install(missing)
+        if #vim.api.nvim_list_uis() == 0 then
+          install:wait(300000)
+        end
+      end
+
+      local treesitter_group = vim.api.nvim_create_augroup("RQZTreesitter", { clear = true })
+      vim.api.nvim_create_autocmd("FileType", {
+        group = treesitter_group,
+        pattern = treesitter_filetypes,
+        callback = function(args)
+          pcall(vim.treesitter.start, args.buf)
+          vim.bo[args.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+        end,
       })
     end,
   },
@@ -195,54 +223,6 @@ require("lazy").setup({
     end,
   },
   
-  -- Opencode.nvim (AI coding assistant)
-  {
-    "sudo-tee/opencode.nvim",
-    dependencies = {
-      "nvim-lua/plenary.nvim",
-      "nvim-telescope/telescope.nvim",
-      "folke/snacks.nvim",
-      {
-        "MeanderingProgrammer/render-markdown.nvim",
-        opts = {
-          anti_conceal = { enabled = false },
-          file_types = { 'markdown', 'opencode_output' },
-        },
-        ft = { 'markdown', 'Avante', 'copilot-chat', 'opencode_output' },
-      },
-    },
-    config = function()
-      require('opencode').setup({
-        keymap_prefix = '<leader>ai',  -- Custom prefix for all keymaps
-        default_global_keymaps = true,  -- Enable all default keymaps
-        default_mode = 'build',  -- Full development mode with file changes
-        
-        -- UI defaults (explicitly shown for clarity)
-        ui = {
-          position = 'right',  -- Right side (nvim-tree is on left)
-          window_width = 0.40,  -- 40% of screen width
-          input_position = 'bottom',  -- Input at bottom of opencode pane
-          display_model = true,  -- Show model name in winbar
-          display_context_size = true,  -- Show context size in footer
-          display_cost = true,  -- Show cost in footer
-        },
-        
-        -- Context defaults (enable useful context)
-        context = {
-          enabled = true,
-          current_file = { enabled = true },
-          selection = { enabled = true },
-          diagnostics = {
-            info = false,  -- Skip info diagnostics
-            warn = true,   -- Include warnings
-            error = true,  -- Include errors
-          },
-          cursor_data = { enabled = false },  -- Disable to reduce noise
-        },
-      })
-    end,
-  },
-  
   -- Alpha-nvim (startup screen)
   {
     "goolord/alpha-nvim",
@@ -293,9 +273,12 @@ require("lazy").setup({
       alpha.setup(dashboard.opts)
       
       -- Disable folding on alpha buffer
-      vim.cmd([[
-        autocmd FileType alpha setlocal nofoldenable
-      ]])
+      vim.api.nvim_create_autocmd("FileType", {
+        pattern = "alpha",
+        callback = function()
+          vim.opt_local.foldenable = false
+        end,
+      })
     end,
   },
 })
@@ -303,8 +286,8 @@ require("lazy").setup({
 -- ============================================================================
 -- Key Mappings
 -- ============================================================================
-local map = vim.api.nvim_set_keymap
-local opts = { noremap = true, silent = true }
+local map = vim.keymap.set
+local opts = { silent = true }
 
 -- Telescope
 map('n', '<leader>ff', '<cmd>Telescope find_files<cr>', opts)
@@ -316,17 +299,17 @@ map('n', '<leader>fk', '<cmd>Telescope find_files search_file=*.kt<cr>', opts)
 -- Harpoon 2
 local harpoon = require('harpoon')
 harpoon:setup()
-vim.keymap.set("n", "<leader>ha", function() harpoon:list():add() end, opts)
-vim.keymap.set("n", "<leader>hm", function() harpoon.ui:toggle_quick_menu(harpoon:list()) end, opts)
-vim.keymap.set("n", "<leader>h1", function() harpoon:list():select(1) end, opts)
-vim.keymap.set("n", "<leader>h2", function() harpoon:list():select(2) end, opts)
-vim.keymap.set("n", "<leader>h3", function() harpoon:list():select(3) end, opts)
-vim.keymap.set("n", "<leader>h4", function() harpoon:list():select(4) end, opts)
+map("n", "<leader>ha", function() harpoon:list():add() end, opts)
+map("n", "<leader>hm", function() harpoon.ui:toggle_quick_menu(harpoon:list()) end, opts)
+map("n", "<leader>h1", function() harpoon:list():select(1) end, opts)
+map("n", "<leader>h2", function() harpoon:list():select(2) end, opts)
+map("n", "<leader>h3", function() harpoon:list():select(3) end, opts)
+map("n", "<leader>h4", function() harpoon:list():select(4) end, opts)
 
 -- NvimTree
 map('n', '<leader>e', '<cmd>NvimTreeToggle<cr>', opts)
 
 -- Lazygit
-vim.keymap.set("n", "<leader>lg", function() Snacks.lazygit() end, opts)
-vim.keymap.set("n", "<leader>ll", function() Snacks.lazygit.log() end, opts)
-vim.keymap.set("n", "<leader>lf", function() Snacks.lazygit.log_file() end, opts)
+map("n", "<leader>lg", function() Snacks.lazygit() end, opts)
+map("n", "<leader>ll", function() Snacks.lazygit.log() end, opts)
+map("n", "<leader>lf", function() Snacks.lazygit.log_file() end, opts)
